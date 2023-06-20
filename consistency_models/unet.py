@@ -20,6 +20,8 @@ blk = lambda ic, oc: nn.Sequential(
 class ConsistencyModel(nn.Module):
     """
     This is ridiculous Unet structure, hey but it works!
+
+    Added intermediate feature functions.
     """
 
     def __init__(self, n_channel: int, eps: float = 0.002, D: int = 128) -> None:
@@ -101,6 +103,51 @@ class ConsistencyModel(nn.Module):
         c_out_t = 0.25 * t / ((t + self.eps).pow(2) + 0.25).pow(0.5)
 
         return c_skip_t[:, :, None, None] * x_ori + c_out_t[:, :, None, None] * x
+    
+    def forward_feature(self, x, t) -> torch.Tensor:
+        if isinstance(t, float):
+            t = (
+                torch.tensor([t] * x.shape[0], dtype=torch.float32)
+                .to(x.device)
+                .unsqueeze(1)
+            )
+        # time embedding
+        args = t.float() * self.freqs[None].to(t.device)
+        t_emb = torch.cat([torch.sin(args), torch.cos(args)], dim=-1).to(x.device)
+
+        x_ori = x
+
+        # perform F(x, t)
+        hs = []
+        for idx, layer in enumerate(self.down):
+            if idx % 2 == 1:
+                x = layer(x) + x
+            else:
+                x = layer(x)
+                x = F.interpolate(x, scale_factor=0.5)
+                hs.append(x)
+
+            x = x + self.time_downs[idx](t_emb)[:, :, None, None]
+
+        x = self.mid(x)
+        feat = x.clone()
+
+        for idx, layer in enumerate(self.up):
+            if idx % 2 == 0:
+                x = layer(x) + x
+            else:
+                x = torch.cat([x, hs.pop()], dim=1)
+                x = F.interpolate(x, scale_factor=2, mode="nearest")
+                x = layer(x)
+
+        x = self.last(torch.cat([x, x_ori], dim=1))
+
+        t = t - self.eps
+        c_skip_t = 0.25 / (t.pow(2) + 0.25)
+        c_out_t = 0.25 * t / ((t + self.eps).pow(2) + 0.25).pow(0.5)
+
+        return c_skip_t[:, :, None, None] * x_ori + c_out_t[:, :, None, None] * x,feat
+
 
     def loss(self, x, z, t1, t2, ema_model):
         x2 = x + z * t2[:, :, None, None]
@@ -122,3 +169,29 @@ class ConsistencyModel(nn.Module):
             x = self(x, t)
 
         return x
+    @torch.no_grad()
+    def sample_intermediates(self, x, ts: List[float]):
+        lst = []
+        x = self.forward_feature(x, ts[0])
+        lst.append(x)
+
+        for t in ts[1:]:
+            z = torch.randn_like(x)
+            x = x + math.sqrt(t**2 - self.eps**2) * z
+            x = self(x, t)
+            lst.append(x)
+
+        return x,lst
+    @torch.no_grad()
+    def sample_feature_intermediates(self, x, ts: List[float]):
+        lst = []
+        x,feat = self.forward_feature(x, ts[0])
+        lst.append(feat)
+
+        for t in ts[1:]:
+            z = torch.randn_like(x)
+            x = x + math.sqrt(t**2 - self.eps**2) * z
+            x,feat = self.forward_feature(x, t)
+            lst.append(feat)
+
+        return x,lst
