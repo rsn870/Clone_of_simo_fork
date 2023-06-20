@@ -1,6 +1,6 @@
 # Modified version of Consistency Models Implementation
 
-This is a modified version of CloneofSimo's implementation of Consistency Models where the UNet Class has been modified to ensure feature extraction from bottleneck. In particular more generalized sampling functions have been added in cm_sample.py and some new dataloaders have been added in main.py 
+This is a modified version of CloneofSimo's implementation of Consistency Models where the UNet Class has been modified to allow for feature extraction from bottleneck. In particular more generalized sampling functions have been added in cm_sample.py and some new dataloaders have been added in main.py 
 
 
 
