@@ -7,9 +7,9 @@ from tqdm import tqdm
 import math
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader,ConcatDataset,Subset
 
-from torchvision.datasets import MNIST, CIFAR10
+from torchvision.datasets import MNIST, CIFAR10,OxfordIIITPet
 from torchvision import transforms
 from torchvision.utils import save_image, make_grid
 
@@ -55,6 +55,231 @@ def cifar10_dl():
     dataloader = DataLoader(dataset, batch_size=128, shuffle=True, num_workers=20)
 
     return dataloader
+
+def oxfordiiitpet_dl():
+    tf = transforms.Compose(
+        [
+            transforms.Resize((64,64)),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5,0.5,0.5)),
+
+        ]
+    )
+
+    dataset = OxfordIIITPet('./data', split='trainval', download=True, transform=tf)
+    dataloader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=0)
+
+    return dataloader
+
+
+def cifar_mnist_dl(nsamples=5000,use_all=True):
+    tf_1 = transforms.Compose(
+        [
+            transforms.Resize((32,32)),
+            transforms.Grayscale(num_output_channels=3),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)),
+        ]
+    )
+
+    tf_2 = transforms.Compose(
+        [
+            transforms.Resize((32,32)),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)),
+        ]
+    )
+
+    dataset = CIFAR10(
+        "./data",
+        train=True,
+        download=True,
+        transform=tf_2,
+    )
+
+    dataset_2 = MNIST(
+        "./data",
+        train=True,
+        download=True,
+        transform=tf_1,
+    )
+
+    if use_all == False:
+        dataset_2 = Subset(dataset_2, list(range(nsamples)))
+
+
+
+
+    dataset_act = ConcatDataset([dataset, dataset_2])
+
+    dataloader = DataLoader(dataset_act, batch_size=16, shuffle=True, num_workers=0)
+
+    return dataloader
+
+
+def cifar_oxfordiiitpet_dl(n_samples=7000):
+
+    """
+    OxfordIIITPet has only 7000 samples!
+    
+    """
+    tf_1 = transforms.Compose(
+        [
+            transforms.Resize((32,32)),
+            #transforms.Grayscale(num_output_channels=3),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)),
+        ]
+    )
+
+    tf_2 = transforms.Compose(
+        [
+            transforms.Resize((32,32)),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)),
+        ]
+    )
+
+    dataset = CIFAR10(
+        "./data",
+        train=True,
+        download=True,
+        transform=tf_2,
+    )
+
+    dataset_2 = OxfordIIITPet(
+        "./data",
+        split='trainval',
+        download=True,
+        transform=tf_1,
+    )
+
+    dataset = Subset(dataset, list(range(n_samples)))
+
+
+
+
+
+    dataset_act = ConcatDataset([dataset, dataset_2])
+
+    dataloader = DataLoader(dataset_act, batch_size=128, shuffle=True, num_workers=0)
+
+    return dataloader
+
+def mnist_oxfordiiitpet_dl(n_samples=7000):
+    tf_1 = transforms.Compose(
+        [
+            transforms.Resize((32,32)),
+            transforms.Grayscale(num_output_channels=3),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)),
+        ]
+    )
+
+    tf_2 = transforms.Compose(
+        [
+            transforms.Resize((32,32)),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)),
+        ]
+    )
+
+    dataset = MNIST(
+        "./data",
+        train=True,
+        download=True,
+        transform=tf_1,
+    )
+
+    dataset_2 = OxfordIIITPet(
+        "./data",
+        split='trainval',
+        download=True,
+        transform=tf_2,
+    )
+
+    dataset = Subset(dataset, list(range(n_samples)))
+
+
+
+
+
+    dataset_act = ConcatDataset([dataset, dataset_2])
+
+    dataloader = DataLoader(dataset_act, batch_size=128, shuffle=True, num_workers=0)
+
+    return dataloader
+
+def cifar_nooverlap_oxfordiiitpet_dl(n_samples=7000):
+
+    tf_1 = transforms.Compose(
+        [
+            transforms.Resize((32,32)),
+            #transforms.Grayscale(num_output_channels=3),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)),
+        ]
+    )
+
+    tf_2 = transforms.Compose(
+        [
+            transforms.Resize((32,32)),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)),
+        ]
+    )
+
+    dataset = CIFAR10(
+        "./data",
+        train=True,
+        download=True,
+        transform=tf_2,
+    )
+
+    dataset_2 = OxfordIIITPet(
+        "./data",
+        split='trainval',
+        download=True,
+        transform=tf_1,
+    )
+
+    #dataset = Subset(dataset, list(range(n_samples)))
+
+    classes = dataset.classes
+    tensor_list = []
+    index_list = []
+    for item, index in tqdm(dataset):
+        label = classes[index]
+        if label == "dog" or label == "cat" or label == "bird" or label == "horse" or label == "frog" or label == "deer":
+            continue
+        else:
+            tensor_list.append(item.unsqueeze(0))
+            index_list.append(index.unsqueeze(0))
+
+    data = torch.cat(tensor_list, dim=0)
+    ids = torch.cat(index_list, dim=0)
+
+    dataset = torch.utils.data.TensorDataset(data, ids)
+
+    dataset = Subset(dataset, list(range(n_samples)))
+
+
+
+
+    
+
+    
+
+
+
+
+
+    dataset_act = ConcatDataset([dataset, dataset_2])
+
+    dataloader = DataLoader(dataset_act, batch_size=128, shuffle=True, num_workers=0)
+
+    return dataloader
+
 
 
 def train(
@@ -132,4 +357,4 @@ def train(
 
 if __name__ == "__main__":
     # train()
-    train(dataloader=cifar10_dl(), n_channels=3, name="cifar10")
+    train(dataloader=cifar_mnist_dl(), n_channels=3, name="cifar_mnist")
