@@ -319,8 +319,8 @@ def effective_rank_samples( n_sample: int = 5,
     feat_list = []
 
     test_dataset = CIFAR10(root='./data', train=False, transform=transforms.Compose([transforms.Resize((im_dim,im_dim)), transforms.ToTensor()]), download=True)
-    test_dataset_3 = MNIST(root='./data', train=False, transform=transforms.Compose([transforms.Resize((im_dim,im_dim)),transforms.Grayscale(num_output_channels=3), transforms.ToTensor()]), download=True)
-    test_dataset_2 = OxfordIIITPet(root='./data', split='test', transform=transforms.Compose([transforms.Resize((im_dim,im_dim)),transforms.Grayscale(num_output_channels=3), transforms.ToTensor()]), download=True)
+    test_dataset_2 = MNIST(root='./data', train=False, transform=transforms.Compose([transforms.Resize((im_dim,im_dim)),transforms.Grayscale(num_output_channels=3), transforms.ToTensor()]), download=True)
+    test_dataset= OxfordIIITPet(root='./data', split='test', transform=transforms.Compose([transforms.Resize((im_dim,im_dim)),transforms.Grayscale(num_output_channels=3), transforms.ToTensor()]), download=True)
 
 
     classes = test_dataset_2.classes
@@ -352,7 +352,7 @@ def effective_rank_samples( n_sample: int = 5,
             x = x + z*t_0[:,:,None,None]
             xh,fh = model.sample_feature_intermediates(
                 x.to(device=device) * 80.0,
-                list(reversed([5.0, 10.0, 20.0, 40.0, 80.0])),
+                list(reversed([0.0,1.0,2.0,3.0,4.0,5.0, 10.0, 20.0, 40.0, 80.0])),
             )
             xh = (xh * 0.5 + 0.5).clamp(0, 1)
             grid = make_grid(xh, nrow=1)
@@ -388,7 +388,7 @@ def effective_rank_samples( n_sample: int = 5,
                     #int_list = torch.cat([0.1*k*torch.randn_like(list_seeds[i]).unsqueeze(0)+0.1*(10-k)*torch.randn_like(list_seeds[j]).unsqueeze(0) for k in range(11)])
                     xh,fh = model.sample_feature_intermediates(
                         int_list * 80.0,
-                        list(reversed([5.0, 10.0, 20.0, 40.0, 80.0])),
+                        list(reversed([0.0,1.0,2.0,3.0,4.0,5.0, 10.0, 20.0, 40.0, 80.0])),
                     )
 
                     xh = (xh * 0.5 + 0.5).clamp(0, 1)
@@ -408,7 +408,7 @@ def effective_rank_samples( n_sample: int = 5,
                     int_list = torch.cat([0.1*k*torch.randn_like(list_seeds[i]).unsqueeze(0)+0.1*(10-k)*torch.randn_like(list_seeds[j]).unsqueeze(0) for k in range(11)])
                     xh,fh = model.sample_feature_intermediates(
                         int_list * 80.0,
-                        list(reversed([5.0, 10.0, 20.0, 40.0, 80.0])),
+                        list(reversed([0.0,1.0,2.0,3.0,4.0,5.0, 10.0, 20.0, 40.0, 80.0])),
                     )
 
                     xh = (xh * 0.5 + 0.5).clamp(0, 1)
@@ -418,26 +418,26 @@ def effective_rank_samples( n_sample: int = 5,
 
 
 
-    feat_dict = {'0':[],'1':[], '2':[],'3':[],'4':[]}
-    feat_dict_2 = {'0':[],'1':[], '2':[],'3':[],'4':[]}
+    feat_dict = {'0':[],'1':[], '2':[],'3':[],'4':[],'5':[],'6':[],'7':[],'8':[],'9':[]}
+    feat_dict_2 = {'0':[],'1':[], '2':[],'3':[],'4':[],'5':[],'6':[],'7':[],'8':[],'9':[]}
 
-    feat_dict_3 = {'0':[],'1':[], '2':[],'3':[],'4':[]}
+    feat_dict_3 = {'0':[],'1':[], '2':[],'3':[],'4':[],'5':[],'6':[],'7':[],'8':[],'9':[]}
 
 
 
 
   
 
-    for i in range(5):
+    for i in range(10):
         feat_dict[str(i)] = [feat_list[j][i].unsqueeze(0) for j in range(len(feat_list))]
         feat_dict_2[str(i)] = [feat_list_2[j][i].unsqueeze(0) for j in range(len(feat_list_2))]
         feat_dict_3[str(i)] = [feat_list_3[j][i].unsqueeze(0) for j in range(len(feat_list_3))]
 
-    rank_dict = {'80':0.0,'40':0.0, '20':0.0,'10':0.0,'5':0.0}
-    rank_dict_2 = {'80':0.0,'40':0.0, '20':0.0,'10':0.0,'5':0.0}
-    rank_dict_3 = {'80':0.0,'40':0.0, '20':0.0,'10':0.0,'5':0.0}
+    rank_dict = {'80':0.0,'40':0.0, '20':0.0,'10':0.0,'5':0.0,'4':0.0,'3':0.0,'2':0.0,'1':0.0,'0':0.0}
+    rank_dict_2 = {'80':0.0,'40':0.0, '20':0.0,'10':0.0,'5':0.0,'4':0.0,'3':0.0,'2':0.0,'1':0.0,'0':0.0}
+    rank_dict_3 = {'80':0.0,'40':0.0, '20':0.0,'10':0.0,'5':0.0,'4':0.0,'3':0.0,'2':0.0,'1':0.0,'0':0.0}
 
-    for i in range(5):
+    for i in range(10):
         feat_dict[str(i)] = torch.cat(feat_dict[str(i)], dim=0)
         feat_dict_2[str(i)] = torch.cat(feat_dict_2[str(i)], dim=0)
         feat_dict_3[str(i)] = torch.cat(feat_dict_3[str(i)], dim=0)
@@ -496,4 +496,4 @@ def effective_rank_samples( n_sample: int = 5,
 
 if __name__ == "__main__":
     # train()
-    effective_rank_samples(n_sample=10, n_channels=3, name="simp_bias",weight_path="./ct_mnist_oxf.pth", im_dim=32)
+    effective_rank_samples(n_sample=10, n_channels=3, name="simp_bias",weight_path="./ct_simp_bias_5000.pth", im_dim=32)
